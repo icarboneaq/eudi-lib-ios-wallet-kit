@@ -206,7 +206,7 @@ public class OpenId4VCIService: NSObject, ASWebAuthenticationPresentationContext
 		} else if case let .oauth(metaData) = offer.authorizationServerMetadata, let endpoint = metaData.pushedAuthorizationRequestEndpoint {
 			pushedAuthorizationRequestEndpoint = endpoint
 		}
-		guard !pushedAuthorizationRequestEndpoint.isEmpty else { throw WalletError(description: "pushed Authorization Request Endpoint is nil") }
+		//guard !pushedAuthorizationRequestEndpoint.isEmpty else { throw WalletError(description: "pushed Authorization Request Endpoint is nil") }
 		logger.info("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
 		let parPlaced = try await issuer.pushAuthorizationCodeRequest(credentialOffer: offer)
 		
