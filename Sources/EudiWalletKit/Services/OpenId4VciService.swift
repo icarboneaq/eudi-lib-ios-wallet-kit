@@ -328,7 +328,7 @@ public class OpenId4VCIService: NSObject, ASWebAuthenticationPresentationContext
 	public func presentationAnchor(for session: ASWebAuthenticationSession)
 	-> ASPresentationAnchor {
 #if os(iOS)
-		let window = UIApplication.shared.windows.first { $0.isKeyWindow }
+		let window = UIApplication.shared.windows.filter {$0.isKeyWindow}.first
 		return window ?? ASPresentationAnchor()
 #else
 		return ASPresentationAnchor()
