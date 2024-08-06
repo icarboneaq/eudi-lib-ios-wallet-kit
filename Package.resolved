@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/icarboneaq/eudi-lib-ios-openid4vci-swift.git",
       "state" : {
-        "revision" : "d27005c1dcc92e16c5c64603997319ceba2e45a8",
-        "version" : "0.0.1"
+        "revision" : "7c2c5696c6ee7db936f1b9b60c05faaa66b42212",
+        "version" : "1.0.1"
       }
     },
     {
