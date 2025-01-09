@@ -1,6 +1,6 @@
 # EUDI Wallet Kit library for iOS
 
-:heavy_exclamation_mark: **Important!** Before you proceed, please read
+**Important!** Before you proceed, please read
 the [EUDI Wallet Reference Implementation project description](https://github.com/eu-digital-identity-wallet/.github/blob/main/profile/reference-implementation.md)
 
 ----
@@ -84,7 +84,7 @@ The released software is a initial development release version:
 To use EUDI Wallet Kit, add the following dependency to your Package.swift:
 ```swift
 dependencies: [
-    .package(url: "https://github.com/eu-digital-identity-wallet/eudi-lib-ios-wallet-kit.git", .upToNextMajor(from: "0.5.6"))
+    .package(url: "https://github.com/eu-digital-identity-wallet/eudi-lib-ios-wallet-kit.git", .upToNextMajor(from: "0.6.6"))
 ]
 ```
 
@@ -94,25 +94,52 @@ dependencies: [
     .product(name: "EudiWalletKit", package: "eudi-lib-ios-wallet-kit"),
 ]
 ```
+## Reference
+Detailed documentation is provided in the DocC documentation [here](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/)
 
 ## Initialization
 The [EudiWallet](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/eudiwallet) class provides a unified API for the two user attestation presentation flows. It is initialized with a document storage manager instance. For SwiftUI apps, the wallet instance can be added as an ``environmentObject`` to be accessible from all views. A KeyChain implementation of document storage is available.
 
+The wallet developer can customize cryptographic key operations by passing `SecureArea` instances to the wallet, otherwise the wallet-kit creates 'SecureEnclave' (default) and 'Software' secure areas. The wallet developer can specify key create options per doc-type such as curve type, secure area name, and key unlock policy.
+
 ```swift
-let wallet = EudiWallet.standard
-wallet.userAuthenticationRequired = true
-wallet.trustedReaderCertificates = [...] // array of der certificate data
-wallet.openId4VpVerifierApiUri = "https:// ... verifier api uri ..."
-wallet.verifierApiUri = configLogic.verifierConfig.apiUri
-wallet.verifierLegalName = configLogic.verifierConfig.legalName
-wallet.openID4VciIssuerUrl = configLogic.vciConfig.issuerUrl
-wallet.openID4VciClientId = configLogic.vciConfig.clientId
-wallet.openID4VciRedirectUri = configLogic.vciConfig.redirectUri
-wallet.loadDocuments()
+let wallet = try! EudiWallet(serviceName: "my_wallet_app",
+   trustedReaderCertificates: [Data(name: "eudi_pid_issuer_ut", ext: "der")!] )
 ```	
 
-## Storage Manager
-The read-only property ``storage`` is an instance of a [StorageManager](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/storagemanager) 
+
+## Manage documents
+
+The [EudiWallet](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/eudiwallet) class provides a set of methods to work with documents.
+
+### Loading documents
+
+The `loadDocuments` method returns documents with a specific status from storage.
+
+The following example shows how to retrieve issued documents:
+
+```swift
+ public func loadDocuments() async throws {
+    let documents = try await wallet.loadDocuments(status: .issued)
+  }
+```
+
+To retrieve documents of all statuses use the `loadAllDocuments` method.
+
+```swift
+let documents = try await wallet.loadAllDocuments()
+```
+
+The `loadDocument(id:status:)` method returns a document with a given id and status. 
+
+The following example shows how to retrieve a document:
+
+```swift
+let document = try await wallet.loadDocument(id: documentId, status: .issued)
+```
+
+### Storage manager
+The read-only property ``storage`` is an instance of a [StorageManager](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/storagemanager) class.
 Currently the keychain implementation is used. It provides document management functionality using the iOS KeyChain.
 
 The storage model provides the following models for the supported well-known document types:
@@ -122,38 +149,16 @@ The storage model provides the following models for the supported well-known doc
 |eu.europa.ec.eudiw.pid.1|[EuPidModel](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-iso18013-data-model/documentation/mdocdatamodel18013/eupidmodel)|
 |org.iso.18013.5.1.mDL|[IsoMdlModel](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-iso18013-data-model/documentation/mdocdatamodel18013/isomdlmodel)|
 
+Since the issued mDoc documents retrieved expose only basic metadata and the raw data, they must be decoded to the corresponding CBOR models. The library provides the ``StorageManager\toClaimsModel`` function to decode document raw CBOR data to strongly-typed models conforming to [DocClaimsDecodable](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-iso18013-data-model/documentation/mdocdatamodel18013/DocClaimsDecodable) protocol. 
+
+The loading functions automatically update the ``StorageManager`` members. The decoded issued documents are available in the ``docModels`` property. The deferred and pending documents are available in the ``StorageManager\deferredDocuments`` and ``StorageManager\pendingDocuments`` properties respectively.
+
 For other document types the [GenericMdocModel](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-iso18013-data-model/documentation/mdocdatamodel18013/genericmdocmodel) is provided.
 
 
-### Manage documents
+### Deleting a document
 
-The library provides a set of methods to work with documents.
-
-#### Listing documents
-
-The `EudiWallet.loadDocuments` method that returns the list of documents stored in the library.
-
-The following example shows how to retrieve issued documents:
-
-```swift
- public func loadDocuments() async throws {
-    let documents = try await wallet.loadDocuments()
-  }
-```
-
-#### Retrieving a document
-
-The `EudiWallet.loadDocument(id:)` method that returns a document with the given id.
-
-The following example shows how to retrieve a document:
-
-```swift
-let document = try await wallet.loadDocument(id: documentId)
-```
-
-#### Deleting a document
-
-The `EudiWallet.deleteDocument(id:)` method that deletes a document with the given id.
+The `deleteDocument(id:)` method that deletes a document with the given id.
 
 The following example shows how to delete a document:
 
@@ -163,35 +168,30 @@ try await wallet.deleteDocument(id: documentId)
 
 ## Issue document using OpenID4VCI
 
-The library provides the functionality to issue documents using OpenID4VCI. To issue a document
+The library provides the functionality to issue documents using OpenID4VCI. 
+
+To issue a document
 using this functionality, EudiWallet must be property initialized. 
 If ``userAuthenticationRequired`` is true, user authentication is required. The authentication prompt message has localisation key "issue_document".
 After issuing a document, the document data and corresponding private key are stored in the wallet storage.
 
 ### Issue document by docType
-When the document docType to be issued use the `issueDocument(docType:format:)` method.
+When the document docType to be issued use the `issueDocument(docType:keyOptions:)` method.
 
-_Important Notes_:
-
-- Currently, only mso_mdoc format is supported
-- Currently, only ES256 algorithm is supported for signing OpenId4CVI proof of possession of the
-  publicKey.
+* Currently, only mso_mdoc format is supported
 
 The following example shows how to issue an EUDI Personal ID document using OpenID4VCI:
 
 ```swift
-wallet.openID4VciIssuerUrl = "https://eudi.netcompany-intrasoft.com/pid-issuer" 
-wallet.openID4VciClientId = "wallet-dev"
-wallet.openID4VciRedirectUri = "eudi-openid4ci://authorize/" 
 do {
-  let doc = try await userWallet.issueDocument(docType: EuPidModel.euPidDocType, format: .cbor)
+  let doc = try await userWallet.issueDocument(docType: EuPidModel.euPidDocType, keyOptions: KeyOptions(secureAreaName: "SecureEnclave", accessControl: [.requireUserPresence])])
   // document has been added to wallet storage, you can display it
 }
 catch {
   // display error
 }
 ```
-#### Resolving Credential offer
+### Resolving Credential offer
 
 The library provides the `resolveOfferUrlDocTypes(uriOffer:)` method that resolves the credential offer URI.
 The method returns the resolved `OfferedIssuanceModel` object that contains the offer's data (offered document types, issuer name and transaction code specification for pre-authorized flow). The offer's data can be displayed to the
@@ -205,19 +205,20 @@ The following example shows how to resolve a credential offer:
   }
 ```
 
-After user acceptance of the offer, the selected documents can be issued using the `issueDocumentsByOfferUrl(offerUri:docTypes:txCodeValue:format:)` method.
+After user acceptance of the offer, the selected documents can be issued using the `issueDocumentsByOfferUrl(offerUri:docTypes:docTypeKeyOptions:txCodeValue:)` method.
 The `txCodeValue` parameter is not used in the case of the authorization code flow.
 The following example shows how to issue documents by offer URL:
 ```swift
- let documents = try await walletController.issueDocumentsByOfferUrl(offerUri: uri,  docTypes: docOffers, format: .cbor, txCodeValue: txCodeValue )
+ let documents = try await walletController.issueDocumentsByOfferUrl(offerUri: uri,  docTypes: docOffers,
+   docTypeKeyOptions: [EuPidModel.euPidDocType : KeyOptions(secureAreaName: "SecureEnclave", accessControl: [.requireUserPresence])], txCodeValue: txCodeValue )
 ```
 
-#### Authorization code flow
+### Authorization code flow
 
 For the authorization code flow to work, the redirect URI must be specified specified by setting the the `openID4VciRedirectUri` property.
 The user is redirected in an authorization web view to the issuer's authorization endpoint. After the user authenticates and authorizes the request, the issuer redirects the user back to the application with an authorization code. The library exchanges the authorization code for an access token and issues the document.
 
-#### Pre-Authorization code flow
+### Pre-Authorization code flow
 
 When Issuer supports the pre-authorization code flow, the resolved offer will also contain the corresponding
 information. Specifically, the `txCodeSpec` field in the `OfferedIssuanceModel` object will contain:
@@ -228,8 +229,18 @@ information. Specifically, the `txCodeSpec` field in the `OfferedIssuanceModel` 
 
 From the user's perspective, the application must provide a way to input the transaction code.
 
-After user acceptance of the offer, the selected documents can be issued using the `issueDocumentsByOfferUrl(offerUri:docTypes:txCodeValue:format:)` method.
+After user acceptance of the offer, the selected documents can be issued using the `issueDocumentsByOfferUrl(offerUri:docTypes:docTypeKeyOptions:txCodeValue:)` method.
 When the transaction code is provided, the issuance process can be resumed by calling the above-mentioned method and passing the transaction code in the `txCodeValue` parameter.
+
+### Dynamic issuance
+Wallet kit supports the Dynamic [PID based issuance](https://github.com/eu-digital-identity-wallet/eudi-wallet-product-roadmap/issues/82)
+
+After calling `issueDocument(docType:keyOptions: KeyOptions:)` or `issueDocumentsByOfferUrl(offerUri:docTypes:docTypeKeyOptions:txCodeValue:)` the wallet application need to check if the doc is pending and has a `authorizePresentationUrl` property. If the property is present, the application should perform the OpenID4VP presentation using the presentation URL. On success, the `resumePendingIssuance(pendingDoc:, webUrl:)` method should be called with the authorization URL provided by the server.
+```swift
+if let urlString = newDocs.last?.authorizePresentationUrl { 
+	// perform openid4vp presentation using the urlString 
+	// on success call resumePendingIssuance using the authorization url  
+```
 
 ## Presentation Service
 The [presentation service protocol](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/presentationservice) abstracts the presentation flow. The [BlePresentationService](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/blepresentationservice) and [OpenId4VpService](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/openid4vpservice) classes implement the proximity and remote presentation flows respectively. The [PresentationSession](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/presentationsession) class is used to wrap the presentation service and provide @Published properties for SwiftUI screens. The following example code demonstrates the initialization of a SwiftUI view with a new presentation session of a selected [flow type](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/flowtype).
@@ -255,12 +266,25 @@ After the request is received the ``presentationSession.disclosedDocuments`` con
 // if the user cancels biometric authentication, onCancel method is called
  await presentationSession.sendResponse(userAccepted: true,
   itemsToSend: presentationSession.disclosedDocuments.items, onCancel: { dismiss() }, onSuccess: {
-			if let url = $0 { presentSafariView(url) }
+			if let url = $0 { 
+        // handle URL
+       }
 		})
 ```
 
+## Logging
+The SwiftLog library is used for logging. The library provides a default logger that logs to the console. The main app configures logging outputs such as file logging.
+To use the logger create a logger instance with the desired label. The logger can be used to log messages with different log levels.
+```swift
+import Logging
+// Create a logger with a label
+let logger = Logger(label: "com.example.BestExampleApp.main")
+// log an info message
+logger.info("Hello World!")
+```
+
 ## Reference
-Detailed documentation is provided [here](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/) 
+Detailed documentation is provided in the DocC documentation [here](https://eu-digital-identity-wallet.github.io/eudi-lib-ios-wallet-kit/documentation/eudiwalletkit/) 
 
 ### Dependencies
 
@@ -268,8 +292,8 @@ The detailed functionality of the wallet kit is implemented in the following Swi
   [SiopOpenID4VP](https://github.com/eu-digital-identity-wallet/eudi-lib-ios-siop-openid4vp-swift.git)
   [OpenID4VCI](https://github.com/eu-digital-identity-wallet/eudi-lib-ios-openid4vci-swift)
 
-### Sample application  
-A sample application that demonstrates the usage of this library is [App Wallet UI](https://github.com/eu-digital-identity-wallet/eudi-app-ios-wallet-ui).
+### Reference application  
+A reference application that demonstrates the usage of this library is [App Wallet UI](https://github.com/eu-digital-identity-wallet/eudi-app-ios-wallet-ui).
 
 ## How to contribute
 
