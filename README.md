@@ -45,11 +45,11 @@ The library provides the following functionality:
         - [x] Authorization Code Flow
         - [x] Pre-authorization Code Flow
         - [x] Support for mso_mdoc format
-        - [ ] Support for sd-jwt-vc format
+        - [x] Support for sd-jwt-vc format
         - [x] Support credential offer
         - [x] Support for DPoP JWT in authorization
         - [x] Support for JWT and CWT proof types
-        - [ ] Support for deferred issuing
+        - [x] Support for deferred issuing
 - Proximity document presentation
     - [x] Support for ISO-18013-5 device retrieval
         - [x] QR device engagement
@@ -178,7 +178,7 @@ After issuing a document, the document data and corresponding private key are st
 ### Issue document by docType
 When the document docType to be issued use the `issueDocument(docType:keyOptions:)` method.
 
-* Currently, only mso_mdoc format is supported
+* Currently, only mso_mdoc and sd_jwt formats are supported
 
 The following example shows how to issue an EUDI Personal ID document using OpenID4VCI:
 
@@ -190,6 +190,14 @@ do {
 catch {
   // display error
 }
+```
+You can also issue a document by passing configuration `identifier` parameter the `identifier`. The configuration identifiers can be retrieved from the issuer's metadata,  using the `getIssuerMetadata` method.
+
+```swift
+  // get current issuer metadata
+  let configuration = try await wallet.getIssuerMetadata()
+  ...
+  let doc = try await userWallet.issueDocument(identifier: "eu.europa.ec.eudi.pid_vc_sd_jwt")
 ```
 ### Resolving Credential offer
 

@@ -1,3 +1,23 @@
+## v0.9.5
+- Updated `eudi-lib-ios-openid4vci-swift` library to version [v0.12.0](https://github.com/eu-digital-identity-wallet/eudi-lib-ios-openid4vci-swift/releases/tag/v0.12.0)
+- `openID4VciConfig` now accepts a `DPoPConstructorType`.
+- Updated `eudi-lib-ios-siop-openid4vp-swift` library to version [v0.7.0](https://github.com/eu-digital-identity-wallet/eudi-lib-ios-siop-openid4vp-swift/releases/tag/v0.7.0)
+### Breaking changes
+- `ElementViewModel`: removed `elementIdentifier` and `displayName` properties and added `elementPath` and `displayNames` properties:
+```
+/// path to locate the element
+public let elementPath: [String]
+// display names of the component paths 
+public let displayNames: [String?]
+```
+
+## v0.9.4
+- Added properties to `DocClaimsDecodable` protocol: `validFrom`, `validUntil`
+## v0.9.3
+- Fixed bug for OpenID4VP presentation for more than 2 documents
+## v0.9.2
+- Fixed bugs for OpenID4VP presentation
+- Added properties to `DocClaimsDecodable` protocol: `issuerDisplay`,`credentialIssuerIdentifier`, `configurationIdentifier`
 ## v0.9.1
 - `EudiWallet`: added `uiCulture` string property for UI localization. It must be a 2-letter language code (optional)
 - `EudiWallet`: added `getIssuerMetadata()` function to retrieve selected issuer's metadata
